@@ -57,18 +57,18 @@ button {
     <title>Garage Door</title>
   </head>
   <body>
-    <h1>I'm the title</h1>
+    <h1>Open a Door</h1>
     <div class='button-container'>
-      <button id='button-1'>I'm a button</button>
-      <button id='button-2'>I'm a button</button>
-      <button id='button-3'>I'm a button</button>
+      <button id='button-1'>Gate</button>
+      <button id='button-2'>Left Garage</button>
+      <button id='button-3'>Right Garage</button>
     </div>
   </body>
   <script>
 // Access debugger via ctrl+shift+i on chrome
-const endpoint1 = 'http://localhost:9000/endpoint1'
-const endpoint2 = 'http://localhost:9000/endpoint2'
-const endpoint3 = 'http://localhost:9000/endpoint3'
+const endpoint1 = '/open_gate'
+const endpoint2 = '/open_left_garage'
+const endpoint3 = '/open_right_garage'
 $(document).ready(() => {
   $('#button-1').click(() => $.post(endpoint1)
     .done(() => console.log('Completed request successfully to endpoint 1'))
