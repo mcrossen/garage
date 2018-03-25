@@ -57,9 +57,7 @@ button {
     <title>Garage Door</title>
   </head>
   <body>
-    <h1>
-      I'm the title
-    </h1>
+    <h1>I'm the title</h1>
     <div class='button-container'>
       <button id='button-1'>I'm a button</button>
       <button id='button-2'>I'm a button</button>
@@ -71,18 +69,18 @@ button {
 const endpoint1 = 'http://localhost:9000/endpoint1'
 const endpoint2 = 'http://localhost:9000/endpoint2'
 const endpoint3 = 'http://localhost:9000/endpoint3'
-$(document).ready(function() {
+$(document).ready(() => {
   $('#button-1').click(() => $.post(endpoint1)
-    .done(() => console.log('Completed request successfully to button 1'))
-    .fail(() => console.log('Was not able to complete request to button 1'))
+    .done(() => console.log('Completed request successfully to endpoint 1'))
+    .fail(() => console.log('Was not able to complete request to endpoint 1'))
   )
   $('#button-2').click(() => $.post(endpoint2)
-    .done(() => console.log('Completed request successfully to button 2'))
-    .fail(() => console.log('Was not able to complete request to button 2'))
+    .done(() => console.log('Completed request successfully to endpoint 2'))
+    .fail(() => console.log('Was not able to complete request to endpoint 2'))
   )
   $('#button-3').click(() => $.post(endpoint3)
-    .done(() => console.log('Completed request successfully to button 3'))
-    .fail(() => console.log('Was not able to complete request to button 3'))
+    .done(() => console.log('Completed request successfully to endpoint 3'))
+    .fail(() => console.log('Was not able to complete request to endpoint 3'))
   )
 })
   </script>
