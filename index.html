@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <!-- this is Scott's favorite tab icon: -->
     <link rel="icon" href="http://icongal.com/gallery/image/5890/nuclear_atom_atomic.png">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <!-- I normally don't put css in html so this probably looks bad -->
     <style>
 @import url('https://fonts.googleapis.com/css?family=Pacifico');
@@ -65,4 +66,24 @@ button {
       <button id='button-3'>I'm a button</button>
     </div>
   </body>
+  <script>
+// Access debugger via ctrl+shift+i on chrome
+const endpoint1 = 'http://localhost:9000/endpoint1'
+const endpoint2 = 'http://localhost:9000/endpoint2'
+const endpoint3 = 'http://localhost:9000/endpoint3'
+$(document).ready(function() {
+  $('#button-1').click(() => $.post(endpoint1)
+    .done(() => console.log('Completed request successfully to button 1'))
+    .fail(() => console.log('Was not able to complete request to button 1'))
+  )
+  $('#button-2').click(() => $.post(endpoint2)
+    .done(() => console.log('Completed request successfully to button 2'))
+    .fail(() => console.log('Was not able to complete request to button 2'))
+  )
+  $('#button-3').click(() => $.post(endpoint3)
+    .done(() => console.log('Completed request successfully to button 3'))
+    .fail(() => console.log('Was not able to complete request to button 3'))
+  )
+})
+  </script>
 </html>
