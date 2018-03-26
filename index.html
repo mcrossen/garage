@@ -53,8 +53,16 @@ button {
   height: 51px;
   font-family: Montserrat;
 }
+.busy {
+  background-color: lightgray;
+}
+.error {
+  background-color: salmon;
+  color: white;
+  border-color: #2895FF;
+}
     </style>
-    <title>Garage Door</title>
+    <title>Open a Door</title>
   </head>
   <body>
     <h1>Open a Door</h1>
@@ -65,23 +73,40 @@ button {
     </div>
   </body>
   <script>
-// Access debugger via ctrl+shift+i on chrome
-const endpoint1 = '/open_gate'
-const endpoint2 = '/open_left_garage'
-const endpoint3 = '/open_right_garage'
-$(document).ready(() => {
-  $('#button-1').click(() => $.post(endpoint1)
-    .done(() => console.log('Completed request successfully to endpoint 1'))
-    .fail(() => console.log('Was not able to complete request to endpoint 1'))
-  )
-  $('#button-2').click(() => $.post(endpoint2)
-    .done(() => console.log('Completed request successfully to endpoint 2'))
-    .fail(() => console.log('Was not able to complete request to endpoint 2'))
-  )
-  $('#button-3').click(() => $.post(endpoint3)
-    .done(() => console.log('Completed request successfully to endpoint 3'))
-    .fail(() => console.log('Was not able to complete request to endpoint 3'))
-  )
+const endpoints = {
+  'button-1': '/open_gate',
+  'button-2': '/open_left_garage',
+  'button-3': '/open_right_garage'
+}
+const waitOnSuccess = 10 // Seconds
+// JQuery doesn't work with fat arrows apparantly
+$(document).ready(function() {
+  // Allow all buttons to be executable
+  Object.keys(endpoints).forEach((id) => $('#' + id).addClass('ready'))
+  // Can't select on .ready because the handler won't clear when class removed
+  $('button').click(function() {
+    // Manually check if button has .ready instead
+    if ($(this).hasClass('ready')) {
+      const endpoint = endpoints[$(this).attr('id')]
+      console.log(`Attempting to make request to ${endpoint}`)
+      // This button can't be pushed for another X seconds (if it works)
+      $(this).removeClass('ready').addClass('busy')
+      // Make request to endpoint and handle correctly
+      $.post(endpoint)
+      .done(() => {
+        console.log(`Request completed successfully to ${endpoint}`)
+        setTimeout(() => {
+          // X seconds have passed. Make it pressable again
+          $(this).removeClass('busy').addClass('ready')
+        }, waitOnSuccess * 1000)
+      })
+      .fail(() => {
+        // Make button unclickable until page refresh
+        $(this).removeClass('busy').addClass('error')
+        console.log(`Request failed to ${endpoint}`)
+      })
+    }
+  })
 })
   </script>
 </html>
