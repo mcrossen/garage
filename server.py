@@ -22,30 +22,40 @@ pin_locks = {}
 @click.command()
 @click.option('--host', default=DEFAULT_HOST, help='What host to broadcast')
 @click.option('--port', default=DEFAULT_PORT, help='What port to bind to')
+@click.option('--invert-gpio', 'invert', is_flag=True)
 @click.option('--landing-page', 'page',
     default=DEFAULT_LANDING_PAGE,
     help="the webpage to serve on the main page")
-def run_server(host, port, page):
+def run_server(host, port, invert, page):
     """easy web interface to control gate and garage doors"""
-    setup_gpio(PINS)
     app.config['index'] = page
+    app.config['invert_gpio'] = invert
+    setup_gpio(PINS)
     app.run(host=host, port=port)
+
+
+def pin_off():
+    return app.config.get('invert_gpio')
+
+
+def pin_on():
+    return not app.config.get('invert_gpio')
 
 
 def setup_gpio(pins: list):
     gpio.setmode(gpio.BOARD)
     for pin in pins:
         gpio.setup(pin, gpio.OUT)
-        gpio.output(pin, False)
+        gpio.output(pin, pin_off())
         pin_locks[pin] = Lock()
 
 
 def open_door(pin: int):
     def assert_pin(pin: int):
         with pin_locks.get(pin):
-            gpio.output(pin, True)
+            gpio.output(pin, pin_on())
             sleep(PIN_ASSERT_DURATION)
-            gpio.output(pin, False)
+            gpio.output(pin, pin_off())
     Thread(target=assert_pin, kwargs={'pin':pin}).start()
     
 
