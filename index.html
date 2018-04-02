@@ -93,18 +93,13 @@ $(document).ready(function() {
       $(this).removeClass('ready').addClass('busy')
       // Make request to endpoint and handle correctly
       $.post(endpoint)
-      .done(() => {
-        console.log(`Request completed successfully to ${endpoint}`)
+      .always(() => {
         setTimeout(() => {
-          // X seconds have passed. Make it pressable again
           $(this).removeClass('busy').addClass('ready')
         }, waitOnSuccess * 1000)
       })
-      .fail(() => {
-        // Make button unclickable until page refresh
-        $(this).removeClass('busy').addClass('error')
-        console.log(`Request failed to ${endpoint}`)
-      })
+      .done(() => console.log(`Request completed successfully to ${endpoint}`))
+      .fail(() => console.log(`Request failed to ${endpoint}`))
     }
   })
 })
