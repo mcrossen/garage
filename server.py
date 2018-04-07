@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask
+from flask import Flask, request
 from time import sleep
 from threading import Thread, Lock
 import RPi.GPIO as gpio
@@ -26,10 +26,13 @@ pin_locks = {}
 @click.option('--landing-page', 'page',
     default=DEFAULT_LANDING_PAGE,
     help="the webpage to serve on the main page")
-def run_server(host, port, invert, page):
+@click.option('--door-password', 'password', default='',
+    help="require users to open doors with a password")
+def run_server(host, port, invert, page, password):
     """easy web interface to control gate and garage doors"""
     app.config['index'] = page
     app.config['invert_gpio'] = invert
+    app.config['password'] = password
     setup_gpio(PINS)
     app.run(host=host, port=port)
 
@@ -68,18 +71,27 @@ def index():
 
 @app.route("/open_gate", methods = ['POST'])
 def open_gate():
+    if app.config.get('password') != request.data.decode():
+        print("invalid password: {}".format(request.data))
+        return "unauthorized", 401
     open_door(GATE)
     return "opening gate..."
 
 
 @app.route("/open_left_garage", methods = ['POST'])
 def open_left_garage():
+    if app.config.get('password') != request.data.decode():
+        print("invalid password: {}".format(request.data))
+        return "unauthorized", 401
     open_door(LEFT_GARAGE)
     return "opening left garage..."
 
 
 @app.route("/open_right_garage", methods = ['POST'])
 def open_right_garage():
+    if app.config.get('password') != request.data.decode():
+        print("invalid password: {}".format(request.data))
+        return "unauthorized", 401
     open_door(RIGHT_GARAGE)
     return "opening right garage..."
 
