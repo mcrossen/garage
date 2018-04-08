@@ -96,5 +96,10 @@ def open_right_garage():
     return "opening right garage..."
 
 
+@app.route("/health")
+def health():
+    return "1"
+
+
 if __name__ == '__main__':
     run_server()
