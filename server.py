@@ -2,65 +2,52 @@
 from flask import Flask, request
 from time import sleep
 from threading import Thread, Lock
-import RPi.GPIO as gpio
 import click
+import smbus
 
 
-DEFAULT_HOST='0.0.0.0'
-DEFAULT_PORT=8080
-PIN_ASSERT_DURATION=0.5
-DEFAULT_LANDING_PAGE='index.html'
-# the gpio values for each pin
-GATE=37
-LEFT_GARAGE=35
-RIGHT_GARAGE=33
-PINS=[GATE, LEFT_GARAGE, RIGHT_GARAGE]
+DEFAULT_HOST = '0.0.0.0'
+DEFAULT_PORT = 8080
+DEFAULT_LANDING_PAGE = 'index.html'
+RELAY_ASSERT_DURATION = 0.5
+RELAY_DEVICE_ADDR = 0x10
+# the I2C data addresses for each door
+GATE = 1
+LEFT_GARAGE = 2
+RIGHT_GARAGE = 3
 # program variables
 app = Flask(__name__)
-pin_locks = {}
+relay_locks = {
+    GATE: Lock(),
+    LEFT_GARAGE: Lock(),
+    RIGHT_GARAGE: Lock(),
+}
+bus = smbus.SMBus(1)
+
 
 @click.command()
 @click.option('--host', default=DEFAULT_HOST, help='What host to broadcast')
 @click.option('--port', default=DEFAULT_PORT, help='What port to bind to')
-@click.option('--invert-gpio', 'invert', is_flag=True)
 @click.option('--landing-page', 'page',
     default=DEFAULT_LANDING_PAGE,
     help="the webpage to serve on the main page")
 @click.option('--door-password', 'password', default='',
     help="require users to open doors with a password")
-def run_server(host, port, invert, page, password):
+def run_server(host, port, page, password):
     """easy web interface to control gate and garage doors"""
     app.config['index'] = page
-    app.config['invert_gpio'] = invert
     app.config['password'] = password
-    setup_gpio(PINS)
     app.run(host=host, port=port)
 
 
-def pin_off():
-    return app.config.get('invert_gpio')
+def open_door(relay: int):
+    def assert_relay(relay: int):
+        with relay_locks.get(relay):
+            bus.write_byte_data(RELAY_DEVICE_ADDR, relay, 0xFF)
+            sleep(RELAY_ASSERT_DURATION)
+            bus.write_byte_data(RELAY_DEVICE_ADDR, relay, 0x00)
+    Thread(target=assert_relay, kwargs={'relay':relay}).start()
 
-
-def pin_on():
-    return not app.config.get('invert_gpio')
-
-
-def setup_gpio(pins: list):
-    gpio.setmode(gpio.BOARD)
-    for pin in pins:
-        gpio.setup(pin, gpio.OUT)
-        gpio.output(pin, pin_off())
-        pin_locks[pin] = Lock()
-
-
-def open_door(pin: int):
-    def assert_pin(pin: int):
-        with pin_locks.get(pin):
-            gpio.output(pin, pin_on())
-            sleep(PIN_ASSERT_DURATION)
-            gpio.output(pin, pin_off())
-    Thread(target=assert_pin, kwargs={'pin':pin}).start()
-    
 
 @app.route("/")
 @app.route("/index")
