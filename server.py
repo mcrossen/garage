@@ -2,6 +2,7 @@
 from flask import Flask, request
 from time import sleep
 from threading import Thread, Lock
+import RPi.GPIO as GPIO
 import click
 import smbus
 
@@ -15,6 +16,7 @@ RELAY_DEVICE_ADDR = 0x10
 GATE = 1
 LEFT_GARAGE = 2
 RIGHT_GARAGE = 3
+GATE_REED_SWITCH = 15
 # program variables
 app = Flask(__name__)
 relay_locks = {
@@ -23,6 +25,8 @@ relay_locks = {
     RIGHT_GARAGE: Lock(),
 }
 bus = smbus.SMBus(1)
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(GATE_REED_SWITCH, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 
 @click.command()
@@ -48,6 +52,12 @@ def open_door(relay: int):
             bus.write_byte_data(RELAY_DEVICE_ADDR, relay, 0x00)
     Thread(target=assert_relay, kwargs={'relay':relay}).start()
 
+def check_state(gpio: int):
+    state = GPIO.input(gpio)
+    if state == 1:
+        return "open"
+    else:
+        return "closed"
 
 @app.route("/")
 @app.route("/index")
@@ -55,6 +65,12 @@ def index():
     with open(app.config.get('index'), 'r') as file:
         return file.read()
 
+@app.route("/state", methods = ['GET'])
+def gate_state():
+    if app.config.get('password') != request.data.decode():
+        print("invalid password: {}".format(request.data))
+        return "unauthorized", 401
+    return "{{\"gate\": \"{}\"}}".format(check_state(GATE_REED_SWITCH))
 
 @app.route("/open_gate", methods = ['POST'])
 def open_gate():
@@ -62,8 +78,7 @@ def open_gate():
         print("invalid password: {}".format(request.data))
         return "unauthorized", 401
     open_door(GATE)
-    return "opening gate..."
-
+    return "{}"
 
 @app.route("/open_left_garage", methods = ['POST'])
 def open_left_garage():
@@ -71,7 +86,7 @@ def open_left_garage():
         print("invalid password: {}".format(request.data))
         return "unauthorized", 401
     open_door(LEFT_GARAGE)
-    return "opening left garage..."
+    return "{}"
 
 
 @app.route("/open_right_garage", methods = ['POST'])
@@ -80,7 +95,7 @@ def open_right_garage():
         print("invalid password: {}".format(request.data))
         return "unauthorized", 401
     open_door(RIGHT_GARAGE)
-    return "opening right garage..."
+    return "{}"
 
 
 @app.route("/health")
@@ -90,3 +105,4 @@ def health():
 
 if __name__ == '__main__':
     run_server()
+
