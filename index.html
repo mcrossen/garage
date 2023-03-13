@@ -3,9 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <!-- this is Scott's favorite tab icon: -->
     <link rel="icon" href="http://icongal.com/gallery/image/5890/nuclear_atom_atomic.png">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <!-- I normally don't put css in html so this probably looks bad -->
     <style>
 @import url('https://fonts.googleapis.com/css?family=Pacifico');
@@ -28,7 +26,7 @@ h1 {
   font-family: 'Pacifico';
   width: 100vw;
 }
-.button-container {
+#button-container {
   width: auto;
   padding-left: 5vw;
   padding-right: 5vw;
@@ -53,7 +51,7 @@ button {
   height: 51px;
   font-family: Montserrat;
 }
-.busy {
+.indeterminate {
   background-color: lightgray;
 }
 .error {
@@ -66,70 +64,71 @@ button {
   </head>
   <body>
     <h1>Open a Door</h1>
-    <div class='button-container'>
-      <button id='gate-button'>Gate</button>
-      <button id='left-garage-button'>Left Garage</button>
-      <button id='right-garage-button'>Right Garage</button>
-    </div>
+    <div id='button-container'></div>
   </body>
   <script>
+
 const endpoints = {
   'gate-button': '/open_gate',
   'left-garage-button': '/open_left_garage',
   'right-garage-button': '/open_right_garage'
 }
 const waitOnSuccess = 10 // Seconds
-// JQuery doesn't work with fat arrows apparantly
-$(document).ready(function() {
-  // Allow all buttons to be executable
-  Object.keys(endpoints).forEach((id) => $('#' + id).addClass('ready'))
+const capitalizeFirstLetter = (string) => (string.charAt(0).toUpperCase() + string.slice(1)).replace('_', ' ').replace('-', ' ')
+addEventListener('DOMContentLoaded', async () => {
   // Updates button text based on output of REST request
-  const update_state = () => {
-    console.log(`Attempting to make request to /state`)
-    $.get('/state', state => {
-      // Parse the response into JSON
-      const parsed = JSON.parse(state)
-      // Check if the expected json keys exist and set appropriate text
-      if (parsed?.["gate"] == 'closed') {
-        $(`#gate-button`).text('Open Gate')
-      } else if (parsed?.["gate"] == 'open') {
-        $(`#gate-button`).text('Close Gate')
-      }
-      if (parsed?.["left-garage"] == 'closed') {
-        $(`#left-garage-button`).text('Open Left Garage')
-      } else if (parsed?.["left-garage"] == 'open') {
-        $(`#left-garage-button`).text('Close Left Garage')
-      }
-      if (parsed?.["right-garage"] == 'closed') {
-        $(`#right-garage-button`).text('Open Right Garage')
-      } else if (parsed?.["right-garage"] == 'open') {
-        $(`#right-garage-button`).text('Close Right Garage')
-      }
-    })
-    .done(() => console.log(`Request completed successfully to /state`))
-    .fail(() => console.log(`Request failed to /state`))
-  }
-  // Can't select on .ready because the handler won't clear when class removed
-  $('button').click(function() {
-    // Manually check if button has .ready instead
-    if ($(this).hasClass('ready')) {
-      const endpoint = endpoints[$(this).attr('id')]
-      console.log(`Attempting to make request to ${endpoint}`)
-      // This button can't be pushed for another X seconds (if it works)
-      $(this).removeClass('ready').addClass('busy')
-      // Make request to endpoint and handle correctly
-      $.post(endpoint)
-      .always(() => {
-        setTimeout(() => {
-          $(this).removeClass('busy').addClass('ready')
-	  update_state()
-        }, waitOnSuccess * 1000)
-      })
-      .done(() => console.log(`Request completed successfully to ${endpoint}`))
-      .fail(() => console.log(`Request failed to ${endpoint}`))
+  const update_state = async (door) => {
+    console.log(`Attempting to make GET request to /doors/${door}`)
+    button = document.getElementById(door)
+    const state = (await (await fetch(`/doors/${door}`)).json())['state']
+    button.classList.remove('indeterminate')
+    button.classList.remove('open')
+    button.classList.remove('closed')
+    button.classList.remove('unknown')
+    if (state == 'open') {
+      button.classList.add('open')
+      button.textContent = `Close ${capitalizeFirstLetter(door)}`
+    } else if (state == 'closed') {
+      button.classList.add('closed')
+      button.textContent = `Open ${capitalizeFirstLetter(door)}`
+    } else if (state == 'unknown') {
+      button.classList.add('unknown')
+      button.textContent = capitalizeFirstLetter(door)
+    } else if (state == 'indeterminate') {
+      button.classList.add('indeterminate')
     }
-  })
-  update_state()
+  }
+
+  const doorContainer = document.getElementById('button-container')
+  console.log('Attempting to make GET request to /doors')
+  for (const door of await (await fetch('/doors')).json()) {
+    const button = document.createElement('button')
+    button.id = door
+    button.classList.add('indeterminate')
+    button.textContent = capitalizeFirstLetter(door)
+    button.addEventListener('click', async () => {
+      let desired = 'indeterminate'
+      if (button.classList.contains('open')) {
+        button.classList.remove('open')
+        desired = 'closed'
+      } else if (button.classList.contains('closed')) {
+        button.classList.remove('closed')
+        desired = 'open'
+      } else if (button.classList.contains('unknown')) {
+	button.classList.remove('unknown')
+        desired = 'unknown'
+      } else {
+        return
+      }
+      button.classList.add('indeterminate')
+      console.log(`Attempting to make POST request to /doors/${door}`)
+      await fetch(`/doors/${door}`, {method: 'POST', body: JSON.stringify({state: desired})})
+      await new Promise(resolve => setTimeout(resolve, 10 * 1000))
+      await update_state(door)
+    })
+    doorContainer.appendChild(button)
+    await update_state(door)
+  }
 })
   </script>
 </html>
